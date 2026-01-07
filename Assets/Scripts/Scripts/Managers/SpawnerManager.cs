@@ -96,19 +96,27 @@ public class SpawnerManager : MonoBehaviour
     [Tooltip("Dialogue GameObject to show at the end of the final wave.")]
     public GameObject endDialogue;
 
-    [Tooltip("How long to show the end dialogue before ending the experience.")]
+    [Tooltip("How long to show the end dialogue before the custom end sequence begins.")]
     public float endDialogueDuration = 5f;
 
     [Tooltip("Delay (in seconds) before starting the End Dialogue sequence after the final wave completes.")]
     public float endDialogueStartDelay = 2f;
 
+    [Header("Custom End Sequence")]
+    [Tooltip("If assigned, this GameObject will be activated at the very end of the experience, instead of fading out or changing scenes.")]
+    public GameObject endSequenceTimelineObject;
+
+    [Header("Spawn Effects")]
+    [Tooltip("If true, enemies will scale up from a small size when they spawn.")]
+    public bool enableSpawnScaling = true;
+    [Tooltip("The duration of the spawn scaling effect in seconds.")]
+    public float enemySpawnScaleDuration = 0.5f;
 
 
     [Header("Debug")]
     [Tooltip("Enable to print verbose spawn debug information")]
     public bool debugSpawning = false;
 
-    // NEW: Shield invincibility settings
     [Header("Shield Invincibility")]
     [Tooltip("When this many seconds remain in a wave, shields become invincible to prevent overlapping dialogues.")]
     public float shieldInvincibilityWaveSeconds = 10f;
@@ -125,12 +133,13 @@ public class SpawnerManager : MonoBehaviour
     private bool wavesStarted = false;
 
     [HideInInspector]
+    // --- CORRECTION: Changed 'new list' to 'new List' ---
     public List<GameObject> enemiesFromThisSpawnerList = new List<GameObject>();
 
     private GameManager gameManager;
     public event System.Action OnAllWavesComplete;
 
-    private Wave endlessCurrentWave = new Wave(); // 🔹 Track the "current" endless wave
+    private Wave endlessCurrentWave = new Wave();
 
     private void Awake()
     {
@@ -182,32 +191,25 @@ public class SpawnerManager : MonoBehaviour
         {
             PlaySFX(waveEndSFX);
 
-            int nextWaveNumber = currentWaveIndex + 1; // 1-based number of the *wave that just ended*
+            int nextWaveNumber = currentWaveIndex + 1;
 
-            // 🔹 Activate dialogue for the completed wave (if assigned)
             Wave completedWave = waves[currentWaveIndex];
             if (completedWave.waveDialogueObject != null)
             {
-                // Optional: deactivate any previously active dialogue
                 foreach (var w in waves)
                 {
                     if (w.waveDialogueObject != null)
                         w.waveDialogueObject.SetActive(false);
                 }
-
-                // Activate this wave's dialogue
                 completedWave.waveDialogueObject.SetActive(true);
             }
 
-
-            // 🔹 If this was the final wave, handle end sequence
             if (nextWaveNumber == finalWaveNumber)
             {
                 EndAllWaves();
                 return;
             }
 
-            // 🔹 Otherwise, continue as normal
             if (waveMode == WaveMode.Timed)
             {
                 currentWaveIndex++;
@@ -215,7 +217,6 @@ public class SpawnerManager : MonoBehaviour
             }
             else
             {
-                // Endless mode: increase difficulty
                 endlessCurrentWave.spawnRate = Mathf.Max(minSpawnRate, endlessCurrentWave.spawnRate - spawnRateDecrease);
                 endlessCurrentWave.maxEnemies = Mathf.Min(maxEnemiesCap, endlessCurrentWave.maxEnemies + maxEnemiesIncrease);
 
@@ -246,7 +247,6 @@ public class SpawnerManager : MonoBehaviour
             endlessCurrentWave.waveTime = (waves.Count > 0 ? waves[0].waveTime : 30f);
             endlessCurrentWave.spawnRate = (waves.Count > 0 ? waves[0].spawnRate : 2f);
             endlessCurrentWave.maxEnemies = (waves.Count > 0 ? waves[0].maxEnemies : 10);
-            // defensive copy so inspector changes later won't mutate the runtime list unexpectedly
             endlessCurrentWave.enemyPrefabs = new List<GameObject>(waves.Count > 0 ? waves[0].enemyPrefabs : new List<GameObject>());
         }
 
@@ -275,10 +275,6 @@ public class SpawnerManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Robust SpawnEnemy: picks one random prefab, one random spawn point, tries pool lookup by name,
-    /// falls back to Instantiate if pooling returns null. Defensive checks for required components.
-    /// </summary>
     private void SpawnEnemy()
     {
         if (spawnPoints.Count == 0)
@@ -303,7 +299,6 @@ public class SpawnerManager : MonoBehaviour
             return;
         }
 
-        // pick a random enemy prefab (single pick)
         int prefabIndex = UnityEngine.Random.Range(0, currentWave.enemyPrefabs.Count);
         GameObject chosenPrefab = currentWave.enemyPrefabs[prefabIndex];
         if (chosenPrefab == null)
@@ -312,29 +307,22 @@ public class SpawnerManager : MonoBehaviour
             return;
         }
 
-        // pick one random spawn point (single pick)
         int spawnIndex = UnityEngine.Random.Range(0, spawnPoints.Count);
         Transform spawnPoint = spawnPoints[spawnIndex];
 
         GameObject enemy = null;
 
-        // Try to get a pooled object. Using name lookup can be fragile because of "(Clone)" suffix.
-        // Try a sanitized name first, then raw name. If your PoolManager supports GetPooledObject(GameObject) prefer that.
         if (PoolManager.current != null)
         {
             string sanitized = chosenPrefab.name.Replace("(Clone)", "").Trim();
             enemy = PoolManager.current.GetPooledObject(sanitized);
             if (enemy == null)
             {
-                // try with the raw name if sanitized failed
                 enemy = PoolManager.current.GetPooledObject(chosenPrefab.name);
             }
         }
 
-        // If pooling failed or no PoolManager, instantiate a fresh copy as a fallback
-        // unified handling for both pooled and instantiated objects:
         var navAgent = enemy != null ? enemy.GetComponent<UnityEngine.AI.NavMeshAgent>() : null;
-        // make sure agent is disabled while we position the object
         if (navAgent != null) navAgent.enabled = false;
 
         UnityEngine.AI.NavMeshHit hit;
@@ -344,12 +332,12 @@ public class SpawnerManager : MonoBehaviour
         {
             if (debugSpawning) Debug.Log("[SpawnerManager] Pool lookup failed for '" + chosenPrefab.name + "'. Instantiating fallback.");
             enemy = Instantiate(chosenPrefab);
-            // update navAgent reference for instantiated object
             navAgent = enemy.GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (navAgent != null) navAgent.enabled = false;
         }
 
-        // place and enable only if we found valid NavMesh
+        Vector3 originalScale = enemy.transform.localScale;
+
         if (foundOnNav)
         {
             enemy.transform.position = hit.position;
@@ -362,10 +350,14 @@ public class SpawnerManager : MonoBehaviour
             if (debugSpawning) Debug.LogWarning("[SpawnerManager] No NavMesh near spawn point; agent will remain disabled for: " + enemy.name);
         }
 
-        // activate after positioning
         enemy.SetActive(true);
 
-        // Defensive: ensure required components exist before using them
+        if (enableSpawnScaling)
+        {
+            enemy.transform.localScale = Vector3.zero;
+            StartCoroutine(ScaleOverTime(enemy.transform, originalScale, enemySpawnScaleDuration));
+        }
+
         EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
         if (enemyHealth != null)
         {
@@ -390,14 +382,34 @@ public class SpawnerManager : MonoBehaviour
         EnemyShoot enemyShoot = enemy.GetComponent<EnemyShoot>();
         if (enemyShoot != null) enemyShoot.enabled = true;
 
-        // no NavMeshAgent enabling for flying enemies
-
-        // Track spawned enemy
         enemiesFromThisSpawnerList.Add(enemy);
         if (gameManager != null)
             gameManager.enemies.Add(enemy);
 
         if (debugSpawning) Debug.LogFormat("[SpawnerManager] Spawned '{0}' at spawnIndex {1}. PoolUsed={2}", chosenPrefab.name, spawnIndex, (PoolManager.current != null).ToString());
+    }
+
+    private IEnumerator ScaleOverTime(Transform targetTransform, Vector3 targetScale, float duration)
+    {
+        if (targetTransform == null) yield break;
+
+        Vector3 startScale = targetTransform.localScale;
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            if (targetTransform == null || !targetTransform.gameObject.activeInHierarchy) yield break;
+
+            timer += Time.deltaTime;
+            float progress = Mathf.Clamp01(timer / duration);
+            targetTransform.localScale = Vector3.Lerp(startScale, targetScale, progress);
+            yield return null;
+        }
+
+        if (targetTransform != null)
+        {
+            targetTransform.localScale = targetScale;
+        }
     }
 
 
@@ -411,17 +423,14 @@ public class SpawnerManager : MonoBehaviour
 
         float extraDelay = 0f;
 
-        // If we're in Timed mode and there’s a valid wave, add that wave’s custom delay
         if (waveMode == WaveMode.Timed && currentWaveIndex < waves.Count)
         {
             extraDelay = waves[currentWaveIndex].extraDelayAfterWave;
         }
 
-        // Combine global and per-wave delay
         intermissionTimer = timeBetweenWaves + extraDelay;
         inIntermission = true;
 
-        // 🟢 OPTIONAL: Display total wait time in wave text
         if (waveText != null)
             waveText.text = $"NEXT WAVE INCOMING... ({intermissionTimer:F1}s)";
 
@@ -436,7 +445,6 @@ public class SpawnerManager : MonoBehaviour
             else
                 waveText.text = "ANOTHER WAVE INCOMING...";
         }
-        // 🕒 Start delayed countdown sound
 
         StartCoroutine(PlayCountdownSFX(intermissionTimer));
 
@@ -444,11 +452,9 @@ public class SpawnerManager : MonoBehaviour
 
     private IEnumerator PlayCountdownSFX(float totalDelay)
     {
-        // Wait until 6 seconds remain before the next wave
         float waitTime = Mathf.Max(0f, totalDelay - 6f);
         yield return new WaitForSeconds(waitTime);
 
-        // Only play if we’re still in intermission (not interrupted early)
         if (inIntermission)
         {
             PlaySFX(countdownSFX);
@@ -473,10 +479,8 @@ public class SpawnerManager : MonoBehaviour
 
             int currentWaveNumber = currentWaveIndex + 1;
 
-            // Turns on scatter shot powerup if within the specified wave range or off
             if (scatterShotStartWave > 0 && cannon != null)
             {
-                // currentWaveIndex is zero-based; scatterShotPowerupWaveNumber is 1-based
                 if (((currentWaveNumber) >= scatterShotStartWave) && ((currentWaveNumber) < scatterShotEndWave))
                 {
                     cannon.ActivateScatterShot();
@@ -491,7 +495,6 @@ public class SpawnerManager : MonoBehaviour
 
             if (fullAutoStartWave > 0 && cannon != null)
             {
-                // currentWaveIndex is zero-based; fullAutoPowerupWaveNumber is 1-based
                 if (((currentWaveNumber) >= fullAutoStartWave) && ((currentWaveNumber) < fullAutoEndWave))
                 {
                     cannon.ActivateFullAutoShot();
@@ -510,7 +513,7 @@ public class SpawnerManager : MonoBehaviour
     {
         if (waveText != null)
         {
-            waveText.text = "WAVE: " + (currentWaveIndex + 1); // 🔹 Same UI for both modes
+            waveText.text = "WAVE: " + (currentWaveIndex + 1);
         }
     }
 
@@ -533,7 +536,7 @@ public class SpawnerManager : MonoBehaviour
             powerUpVFX.SetActive(true);
             powerUpVFX.transform.localScale = startScale;
 
-            StopAllCoroutines(); // prevent overlapping animations
+            StopAllCoroutines();
             StartCoroutine(AnimatePowerUpVFX());
         }
 
@@ -544,7 +547,6 @@ public class SpawnerManager : MonoBehaviour
     {
         float timer = 0f;
 
-        // 🔹 Scale up (startScale → popScale)
         while (timer < scaleTransitionTime)
         {
             float t = timer / scaleTransitionTime;
@@ -554,10 +556,8 @@ public class SpawnerManager : MonoBehaviour
         }
         powerUpVFX.transform.localScale = popScale;
 
-        // 🔹 Hold at peak
         yield return new WaitForSeconds(holdTimeAtPeak);
 
-        // 🔹 Scale down (popScale → startScale)
         timer = 0f;
         while (timer < scaleTransitionTime)
         {
@@ -568,7 +568,6 @@ public class SpawnerManager : MonoBehaviour
         }
         powerUpVFX.transform.localScale = startScale;
 
-        // 🔹 Keep visible for the remainder of duration
         yield return new WaitForSeconds(powerUpVFXDuration);
         powerUpVFX.SetActive(false);
     }
@@ -599,7 +598,6 @@ public class SpawnerManager : MonoBehaviour
 
         OnAllWavesComplete?.Invoke();
 
-        // 🔹 Start final dialogue + end experience
         StartCoroutine(StartEndDialogueWithDelay());
     }
 
@@ -621,10 +619,7 @@ public class SpawnerManager : MonoBehaviour
 
     private IEnumerator StartEndDialogueWithDelay()
     {
-        // Wait for the configured delay before starting the end dialogue sequence
         yield return new WaitForSeconds(endDialogueStartDelay);
-
-        // Then continue with the existing end sequence
         StartCoroutine(HandleEndDialogueSequence());
     }
 
@@ -634,34 +629,37 @@ public class SpawnerManager : MonoBehaviour
         if (endDialogue != null)
             endDialogue.SetActive(true);
 
-        // Wait for the dialogue to finish
         yield return new WaitForSeconds(endDialogueDuration);
 
-        // Find GameManager and trigger fade to results
-        GameManager gm = FindObjectOfType<GameManager>();
-        if (gm != null)
+        if (endSequenceTimelineObject != null)
         {
-            gm.FadeAndLoadResults();
+            Debug.Log("[SpawnerManager] Activating custom end sequence object.", endSequenceTimelineObject);
+            endSequenceTimelineObject.SetActive(true);
         }
         else
         {
-            Debug.LogWarning("GameManager not found – could not trigger FadeAndLoadResults.");
+            Debug.LogWarning("[SpawnerManager] No 'End Sequence Timeline Object' assigned. Falling back to old fade behavior.");
+            GameManager gm = FindObjectOfType<GameManager>();
+            if (gm != null)
+            {
+                gm.FadeAndLoadResults();
+            }
+            else
+            {
+                Debug.LogWarning("GameManager not found – could not trigger FadeAndLoadResults.");
+            }
         }
     }
 
-    // Add this method (place near other helper methods, e.g. before HandleEndDialogueSequence)
     public bool IsShieldInvincible()
     {
-        // only guard when waves have started
         if (!wavesStarted) return false;
 
-        // if currently in intermission, protect during the configured final seconds of intermission
         if (inIntermission)
         {
             return intermissionTimer > 0f && intermissionTimer <= shieldInvincibilityIntermissionSeconds;
         }
 
-        // if in a timed wave, check remaining time
         Wave currentWave = (waveMode == WaveMode.Timed && currentWaveIndex < waves.Count)
             ? waves[currentWaveIndex]
             : endlessCurrentWave;
@@ -671,5 +669,4 @@ public class SpawnerManager : MonoBehaviour
         float remaining = currentWave.waveTime - waveTimer;
         return remaining > 0f && remaining <= shieldInvincibilityWaveSeconds;
     }
-
 }

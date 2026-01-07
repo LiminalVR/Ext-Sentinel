@@ -64,6 +64,11 @@ public class Cannon : MonoBehaviour
     [Tooltip("Rotation speed for VR mode")]
     public float vrRotationSpeed = 15f;
 
+    [Tooltip("Multiplier for VR horizontal (left/right) rotation sensitivity.")]
+    public float vrHorizontalSensitivity = 1.0f;
+    [Tooltip("Multiplier for VR vertical (up/down) rotation sensitivity.")]
+    public float vrVerticalSensitivity = 1.0f;
+
     private float pitch = 0f;
     private float yaw = 0f;
 
@@ -87,6 +92,10 @@ public class Cannon : MonoBehaviour
     [Header("Game Start Dialogue")]
     [SerializeField] private GameObject gameStartDialogue;
 
+    [Header("On Release Settings")]
+    [Tooltip("These objects will become active when the turret is released, but only after the first grab.")]
+    public GameObject[] objectsToActivateOnRelease;
+
     //public AudioMixer masterMixer; 
 
     void Start()
@@ -97,6 +106,8 @@ public class Cannon : MonoBehaviour
         grabHandle = false;
         particleSystem = GetComponentInChildren<ParticleSystem>();
         audio = GetComponent<AudioSource>();
+
+        ToggleReleaseObjects(false);
     }
 
     void Update()
@@ -104,33 +115,18 @@ public class Cannon : MonoBehaviour
         IVRInputDevice primaryInput = VRDevice.Device != null ? VRDevice.Device.PrimaryInputDevice : null;
         IVRInputDevice secondaryInput = VRDevice.Device != null ? VRDevice.Device.SecondaryInputDevice : null;
 
-        // ---------- PC Editor Grab ----------
 #if UNITY_EDITOR
-        // In the editor, press 'E' to simulate grabbing the handles and start the game.
+        // --- MODIFIED: Editor Hold-to-Grab Logic ---
+        // Press E to Grab
         if (Application.isEditor && Input.GetKeyDown(KeyCode.E) && !grabHandle)
         {
-            grabHandle = true;
-            grabHandleComplete = true;
-            initialGrab = true;
-            handleHand.GetComponent<MeshRenderer>().enabled = true;
-            hand.GetComponent<MeshRenderer>().enabled = false;
-            if (secondaryHand != null) secondaryHand.SetActive(false);
+            HandleGrab();
+        }
 
-            // Tell SpawnerManager to begin waves
-            if (spawnerManager != null)
-                spawnerManager.BeginSpawning();
-
-            // Turn off Tutorial Hands when turret grabbed
-            if (tutorialHands != null)
-                tutorialHands.SetActive(false);
-
-            // Turn off Tutorial Dialogue when turret grabbed
-            if (tutorialDialogue != null)
-                tutorialDialogue.SetActive(false);
-
-            // Turn on Game Start Dialogue when turret grabbed
-            if (gameStartDialogue != null)
-                gameStartDialogue.SetActive(true);
+        // Release E to Ungrab
+        if (Application.isEditor && Input.GetKeyUp(KeyCode.E) && grabHandle)
+        {
+            HandleRelease();
         }
 #endif
 
@@ -144,63 +140,14 @@ public class Cannon : MonoBehaviour
             {
                 if (!grabHandle)
                 {
-                    grabHandle = true;
-                    grabHandleComplete = true;
-                    initialGrab = true;
-                    handleHand.GetComponent<MeshRenderer>().enabled = true;
-                    hand.GetComponent<MeshRenderer>().enabled = false;
-                    if (secondaryHand != null) secondaryHand.SetActive(false);
-
-                    // Turn off Tutorial Hands when turret grabbed
-                    if (tutorialHands != null)
-                        tutorialHands.SetActive(false);
-
-                    // Turn off Tutorial Dialogue when turret grabbed
-                    if (tutorialDialogue != null)
-                        tutorialDialogue.SetActive(false);
-
-                    // Turn on Game Start Dialogue when turret grabbed
-                    if (gameStartDialogue != null)
-                        gameStartDialogue.SetActive(true);
-
-                    // Trigger waves when cannon is first grabbed
-                    if (spawnerManager != null)
-                        spawnerManager.BeginSpawning();
+                    HandleGrab();
                 }
             }
             else
             {
                 if (grabHandle)
                 {
-                    grabHandle = false;
-                    grabHandleComplete = false;
-                    handleHand.GetComponent<MeshRenderer>().enabled = false;
-                    hand.GetComponent<MeshRenderer>().enabled = true;
-                    hand.transform.position = primaryHandAnchor.position;
-                    hand.transform.rotation = primaryHandAnchor.rotation;
-                    initialGrab = false;
-                    if (secondaryHand != null) secondaryHand.SetActive(true);
-
-                    // STOP any firing state when handle is released (prevent continued full-auto)
-                    firePressed = false;
-
-                    if (autoFireRoutine != null)
-                    {
-                        StopCoroutine(autoFireRoutine);
-                        autoFireRoutine = null;
-                    }
-
-                    if (audio != null)
-                    {
-                        if (audio.loop)
-                        {
-                            audio.loop = false;
-                            audio.Stop();
-                        }
-                        // play release tail only if we were in full-auto
-                        if (isFullAutoShot && endClip != null)
-                            audio.PlayOneShot(endClip, endVolume);
-                    }
+                    HandleRelease();
                 }
             }
         }
@@ -214,8 +161,8 @@ public class Cannon : MonoBehaviour
                     cannonPos.transform.position - (primaryHand.transform.position - cannonPos.transform.position) * 1000
                 );
 
-                float handX = Mathf.Clamp(rotation.x, -0.4f, 0.2f);
-                float handY = Mathf.Clamp(rotation.y, -0.4f, 0.4f);
+                float handX = Mathf.Clamp(rotation.x, -0.4f, 0.2f) * vrVerticalSensitivity;
+                float handY = Mathf.Clamp(rotation.y, -0.4f, 0.4f) * vrHorizontalSensitivity;
 
                 float rotationSpeed = vrRotationSpeed;
                 cBase.transform.rotation = Quaternion.Lerp(
@@ -263,8 +210,6 @@ public class Cannon : MonoBehaviour
 #if UNITY_EDITOR
                 if (Application.isEditor)
                 {
-                    // MODIFICATION: Check for left OR right mouse button to mirror VR 'either hand' functionality.
-                    // GetMouseButton(0) is left click, GetMouseButton(1) is right click.
                     holdFire = Input.GetMouseButton(0) || Input.GetMouseButton(1);
                     downFire = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1);
                 }
@@ -283,7 +228,6 @@ public class Cannon : MonoBehaviour
                     }
                 }
 
-                // Use holdFire for full-auto, downFire for single-shot/scatter
                 if (isFullAutoShot)
                     firePressed = holdFire;
                 else
@@ -298,7 +242,6 @@ public class Cannon : MonoBehaviour
                 {
                     if (autoFireRoutine == null)
                     {
-                        // Start audio chain (A -> B)
                         if (startClip != null) audio.PlayOneShot(startClip, startVolume);
                         if (loopClip != null)
                         {
@@ -312,25 +255,100 @@ public class Cannon : MonoBehaviour
                 }
                 else if ((scatterClip != null) && (isScatterShot && firePressed))
                 {
-                    // play shotgun-style audio for scatter
                     FireCannon();
                     audio.PlayOneShot(scatterClip, scatterVolume);
                 }
-                else // player released trigger/mouse
+                else
                 {
                     if (autoFireRoutine != null)
                     {
                         StopCoroutine(autoFireRoutine);
                         autoFireRoutine = null;
 
-                        // Stop continuous loop and play end sound (C)
                         audio.loop = false;
                         audio.Stop();
-                        // only play end sound for full-auto mode
+
                         if (isFullAutoShot && endClip != null)
                             audio.PlayOneShot(endClip, endVolume);
                     }
                 }
+            }
+        }
+    }
+
+    private void HandleGrab()
+    {
+        grabHandle = true;
+        grabHandleComplete = true;
+
+        handleHand.GetComponent<MeshRenderer>().enabled = true;
+        hand.GetComponent<MeshRenderer>().enabled = false;
+        if (secondaryHand != null) secondaryHand.SetActive(false);
+
+        if (initialGrab)
+        {
+            ToggleReleaseObjects(false);
+        }
+
+        if (!initialGrab)
+        {
+            initialGrab = true;
+
+            if (spawnerManager != null)
+                spawnerManager.BeginSpawning();
+
+            if (tutorialHands != null)
+                tutorialHands.SetActive(false);
+
+            if (tutorialDialogue != null)
+                tutorialDialogue.SetActive(false);
+
+            if (gameStartDialogue != null)
+                gameStartDialogue.SetActive(true);
+        }
+    }
+
+    private void HandleRelease()
+    {
+        grabHandle = false;
+        grabHandleComplete = false;
+        handleHand.GetComponent<MeshRenderer>().enabled = false;
+        hand.GetComponent<MeshRenderer>().enabled = true;
+        hand.transform.position = primaryHandAnchor.position;
+        hand.transform.rotation = primaryHandAnchor.rotation;
+        if (secondaryHand != null) secondaryHand.SetActive(true);
+
+        ToggleReleaseObjects(true);
+
+        firePressed = false;
+
+        if (autoFireRoutine != null)
+        {
+            StopCoroutine(autoFireRoutine);
+            autoFireRoutine = null;
+        }
+
+        if (audio != null)
+        {
+            if (audio.loop)
+            {
+                audio.loop = false;
+                audio.Stop();
+            }
+            if (isFullAutoShot && endClip != null)
+                audio.PlayOneShot(endClip, endVolume);
+        }
+    }
+
+    private void ToggleReleaseObjects(bool setActive)
+    {
+        if (objectsToActivateOnRelease == null || objectsToActivateOnRelease.Length == 0) return;
+
+        foreach (var obj in objectsToActivateOnRelease)
+        {
+            if (obj != null)
+            {
+                obj.SetActive(setActive);
             }
         }
     }
@@ -341,21 +359,16 @@ public class Cannon : MonoBehaviour
         {
             for (int i = 0; i < shotgunSpread; i++)
             {
-                // Exact uniform sampling over a cone (no axis bias):
-                // pick cos(theta) uniformly between cos(maxAngle) and 1.
-                float maxAngle = 1f; // degrees
+                float maxAngle = 1f;
                 float maxAngleRad = maxAngle * Mathf.Deg2Rad;
 
-                // Sample uniformly on the spherical cap/cone
-                float u = Random.value; // [0,1)
+                float u = Random.value;
                 float cosTheta = Mathf.Lerp(Mathf.Cos(maxAngleRad), 1f, u);
                 float sinTheta = Mathf.Sqrt(1f - cosTheta * cosTheta);
                 float phi = Random.Range(0f, Mathf.PI * 2f);
 
-                // Direction in barrel's local space (z-forward)
                 Vector3 localDir = new Vector3(sinTheta * Mathf.Cos(phi), sinTheta * Mathf.Sin(phi), cosTheta);
 
-                // Convert to world space and get rotation
                 Vector3 worldDir = barrelEnd.transform.TransformDirection(localDir).normalized;
                 Quaternion spreadRotation = Quaternion.LookRotation(worldDir, barrelEnd.transform.up);
 
@@ -366,22 +379,17 @@ public class Cannon : MonoBehaviour
         {
             SpawnCannonball(barrelEnd.transform.position, barrelEnd.transform.rotation);
 
-            // only play single-shot sound if not in full-auto (full-auto is handled elsewhere)
             if (!isFullAutoShot && singleShotClip != null)
                 audio.PlayOneShot(singleShotClip, singleShotVolume);
         }
 
-
-        // 🎇 Randomize muzzle flash Z rotation
         if (particleSystem != null)
         {
             var main = particleSystem.main;
-            main.startRotation = Random.Range(0f, Mathf.PI * 2f); // radians
+            main.startRotation = Random.Range(0f, Mathf.PI * 2f);
             particleSystem.Play();
         }
 
-
-        // Recoil
         currentRecoil += recoilAngle;
         currentRecoil = Mathf.Clamp(currentRecoil, 0, recoilAngle * 2f);
         OVRInput.SetControllerVibration(1f, 1f, OVRInput.Controller.RTouch | OVRInput.Controller.LTouch);
@@ -398,11 +406,10 @@ public class Cannon : MonoBehaviour
     {
         GameObject returnedGameObject = PoolManager.current.GetPooledObject(cannonBall.name);
         if (returnedGameObject == null) return;
-        // Use a local reference to avoid cross-iteration state when spawning multiple pooled objects
+
         CannonBall localCb = returnedGameObject.GetComponent<CannonBall>();
         localCb.firedFrom = this;
 
-        // Small forward offset to reduce immediate collider overlap when multiple shots spawn simultaneously
         float spawnOffset = 0.2f;
         Vector3 forward = rot * Vector3.forward;
         localCb.rb.transform.position = pos + forward * spawnOffset;
@@ -410,18 +417,14 @@ public class Cannon : MonoBehaviour
 
         returnedGameObject.SetActive(true);
 
-        // Make kinematic for a single physics step, then enable and apply impulse to avoid overlap resolution pushing them aside
         localCb.rb.isKinematic = true;
-        // Clear any previous velocity
         localCb.rb.velocity = Vector3.zero;
 
-        // Start coroutine to enable physics and apply force on next FixedUpdate
         StartCoroutine(EnablePhysicsNextFixed(localCb));
     }
 
     private IEnumerator EnablePhysicsNextFixed(CannonBall cbLocal)
     {
-        // Wait for the next physics step so the spawned object isn't immediately resolved against nearby colliders
         yield return new WaitForFixedUpdate();
 
         if (cbLocal == null || cbLocal.rb == null) yield break;
