@@ -34,10 +34,15 @@ public class Cannon : MonoBehaviour
     public AudioClip scatterClip;   // short burst sound for shotgun
 
     [Header("Audio Volumes")]
+    [Tooltip("Volume for the standard single cannon shot.")]
     [Range(0f, 1f)] public float singleShotVolume = 1f;
+    [Tooltip("Volume for the initial burst sound of the full-auto mode.")]
     [Range(0f, 1f)] public float startVolume = 1f;
+    [Tooltip("Volume for the looping firing sound during full-auto mode.")]
     [Range(0f, 1f)] public float loopVolume = 1f;
+    [Tooltip("Volume for the tail-off sound when releasing the trigger in full-auto mode.")]
     [Range(0f, 1f)] public float endVolume = 1f;
+    [Tooltip("Volume for the scatter shot sound effect.")]
     [Range(0f, 1f)] public float scatterVolume = 1f;
 
     [Header("Power Up Settings")]
@@ -73,30 +78,45 @@ public class Cannon : MonoBehaviour
     private float yaw = 0f;
 
 
-    // Recoil Settings
-    [Header("Recoil Settings")]
+    [Header("Rotational Recoil")]
     public int shotgunSpread = 4;
+    [Tooltip("The amount the cannon rotates upwards when firing. Set to 0 to disable rotational recoil.")]
     public float recoilAngle = 5f;
     public float recoilRecovery = 10f;
     private float currentRecoil = 0f;
 
-    // Tutorial Hands
+    // --- NEW: Kick-Back Recoil ---
+    [Header("Kick-Back Recoil")]
+    [Tooltip("The distance the cannon moves backward when firing. Set to 0 to disable kick-back recoil.")]
+    public float kickbackIntensity = 0.1f;
+    [Tooltip("How quickly the cannon returns to its original position after kicking back.")]
+    public float kickbackRecoverySpeed = 15f;
+    private float currentKickback = 0f;
+    private Vector3 originalCannonLocalPosition;
+    // --- END NEW ---
+
+    [Header("Haptic Settings")]
+    [Tooltip("The strength of the haptic burst when first grabbing the cannon (0 to 1).")]
+    [Range(0f, 1f)] public float initialGrabHapticStrength = 0.8f;
+    [Tooltip("The duration of the haptic burst when first grabbing the cannon (in seconds).")]
+    public float initialGrabHapticDuration = 0.5f;
+    [Tooltip("The strength of the haptic feedback when firing a shot (0 to 1).")]
+    [Range(0f, 1f)] public float fireHapticStrength = 1f;
+    [Tooltip("The duration of the haptic feedback when firing a shot (in seconds).")]
+    public float fireHapticDuration = 0.2f;
+
     [Header("Tutorial Hands")]
     [SerializeField] private GameObject tutorialHands;
 
-    // Tutorial Dialogue
     [Header("Tutorial Dialogue")]
     [SerializeField] private GameObject tutorialDialogue;
 
-    // Game Start Dialogue
     [Header("Game Start Dialogue")]
     [SerializeField] private GameObject gameStartDialogue;
 
     [Header("On Release Settings")]
     [Tooltip("These objects will become active when the turret is released, but only after the first grab.")]
     public GameObject[] objectsToActivateOnRelease;
-
-    //public AudioMixer masterMixer; 
 
     void Start()
     {
@@ -108,6 +128,13 @@ public class Cannon : MonoBehaviour
         audio = GetComponent<AudioSource>();
 
         ToggleReleaseObjects(false);
+
+        // --- NEW: Store the cannon's original local position ---
+        if (cannon != null)
+        {
+            originalCannonLocalPosition = cannon.localPosition;
+        }
+        // --- END NEW ---
     }
 
     void Update()
@@ -116,21 +143,19 @@ public class Cannon : MonoBehaviour
         IVRInputDevice secondaryInput = VRDevice.Device != null ? VRDevice.Device.SecondaryInputDevice : null;
 
 #if UNITY_EDITOR
-        // --- MODIFIED: Editor Hold-to-Grab Logic ---
-        // Press E to Grab
+        // Editor Hold-to-Grab Logic
         if (Application.isEditor && Input.GetKeyDown(KeyCode.E) && !grabHandle)
         {
             HandleGrab();
         }
 
-        // Release E to Ungrab
         if (Application.isEditor && Input.GetKeyUp(KeyCode.E) && grabHandle)
         {
             HandleRelease();
         }
 #endif
 
-        // ---------- VR Grab Handle ----------
+        // VR Grab Handle Logic
         if (!Application.isEditor && VRDevice.Device != null)
         {
             bool leftGrab = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger);
@@ -154,6 +179,8 @@ public class Cannon : MonoBehaviour
 
         if (grabHandle)
         {
+            Quaternion baseCannonRotation;
+
             // VR Controls
             if (!Application.isEditor && VRDevice.Device != null)
             {
@@ -171,20 +198,14 @@ public class Cannon : MonoBehaviour
                     rotationSpeed * Time.deltaTime
                 );
 
-                Quaternion baseCannonRotation = Quaternion.Lerp(
+                baseCannonRotation = Quaternion.Lerp(
                     cannon.transform.localRotation,
                     new Quaternion(handX, 0, 0, cannon.transform.localRotation.w),
                     rotationSpeed * Time.deltaTime
                 );
-
-                Quaternion recoilRotation = Quaternion.Euler(-currentRecoil, 0, 0);
-                cannon.transform.localRotation = baseCannonRotation * recoilRotation;
-
-                currentRecoil = Mathf.Lerp(currentRecoil, 0f, recoilRecovery * Time.deltaTime);
             }
-            else // This block handles Editor mouse controls
+            else // Editor mouse controls
             {
-                // Mouse Controls
                 float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
                 float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
@@ -193,17 +214,24 @@ public class Cannon : MonoBehaviour
                 pitch = Mathf.Clamp(pitch, -30f, 30f);
 
                 cBase.localRotation = Quaternion.Euler(0f, yaw, 0f);
-
-                Quaternion baseCannonRotation = Quaternion.Euler(pitch, 0f, 0f);
-                Quaternion recoilRotation = Quaternion.Euler(-currentRecoil, 0, 0);
-                cannon.localRotation = baseCannonRotation * recoilRotation;
-
-                currentRecoil = Mathf.Lerp(currentRecoil, 0f, recoilRecovery * Time.deltaTime);
+                baseCannonRotation = Quaternion.Euler(pitch, 0f, 0f);
             }
 
-            // Fire
+            // --- MODIFIED: Apply all recoil types here ---
+            // Rotational Recoil
+            Quaternion recoilRotation = Quaternion.Euler(-currentRecoil, 0, 0);
+            cannon.localRotation = baseCannonRotation * recoilRotation;
+
+            // Positional Kick-back Recoil
+            cannon.localPosition = originalCannonLocalPosition + Vector3.back * currentKickback;
+
+            // Recover from both recoil types over time
+            currentRecoil = Mathf.Lerp(currentRecoil, 0f, recoilRecovery * Time.deltaTime);
+            currentKickback = Mathf.Lerp(currentKickback, 0f, kickbackRecoverySpeed * Time.deltaTime);
+            // --- END MODIFICATION ---
+
+            // Firing Logic
             {
-                // Fire input handling: detect both "down" (single) and "hold" (continuous)
                 bool holdFire = false;
                 bool downFire = false;
 
@@ -293,6 +321,8 @@ public class Cannon : MonoBehaviour
         if (!initialGrab)
         {
             initialGrab = true;
+
+            TriggerHaptics(initialGrabHapticStrength, initialGrabHapticDuration);
 
             if (spawnerManager != null)
                 spawnerManager.BeginSpawning();
@@ -390,10 +420,21 @@ public class Cannon : MonoBehaviour
             particleSystem.Play();
         }
 
+        // --- NEW: Add both rotational and kick-back recoil on fire ---
         currentRecoil += recoilAngle;
         currentRecoil = Mathf.Clamp(currentRecoil, 0, recoilAngle * 2f);
-        OVRInput.SetControllerVibration(1f, 1f, OVRInput.Controller.RTouch | OVRInput.Controller.LTouch);
-        StartCoroutine(StopHaptics(0.2f));
+
+        currentKickback += kickbackIntensity;
+        currentKickback = Mathf.Clamp(currentKickback, 0, kickbackIntensity * 2f);
+        // --- END NEW ---
+
+        TriggerHaptics(fireHapticStrength, fireHapticDuration);
+    }
+
+    private void TriggerHaptics(float strength, float duration)
+    {
+        OVRInput.SetControllerVibration(strength, strength, OVRInput.Controller.RTouch | OVRInput.Controller.LTouch);
+        StartCoroutine(StopHaptics(duration));
     }
 
     private IEnumerator StopHaptics(float duration)
@@ -468,7 +509,6 @@ public class Cannon : MonoBehaviour
                 audio.PlayOneShot(endClip, endVolume);
         }
     }
-
 
     private IEnumerator FullAutoFireCannon()
     {

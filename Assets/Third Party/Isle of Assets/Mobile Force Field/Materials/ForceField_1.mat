@@ -40,11 +40,19 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 9cb7bb0b99eccab4794a6de5e6593024, type: 3}
-        m_Scale: {x: 13.82, y: 7.4}
+        m_Texture: {fileID: 2800000, guid: 0e7be3c2d5840a34eae92558f380da50, type: 3}
+        m_Scale: {x: 2, y: 2}
+        m_Offset: {x: 0, y: 0}
+    - _MaskTex:
+        m_Texture: {fileID: 2800000, guid: 0e7be3c2d5840a34eae92558f380da50, type: 3}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: 0e7be3c2d5840a34eae92558f380da50, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
@@ -71,11 +79,18 @@ Material:
     - _Glossiness: 0.5
     - _GlossyReflections: 1
     - _IntersectionThreshold: 1
+    - _MaskScale: 2
+    - _MaskSpeed: 0.13
+    - _MaskWarp: 2.38
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _RimEffect: 0.425
+    - _RimIntensity: 1.89
+    - _RippleIntensity: -0.1
+    - _RippleScale: 4
+    - _RippleSpeed: 0.14
     - _ScrollSpeedU: 5
     - _ScrollSpeedV: 2
     - _SmoothnessTextureChannel: 0
@@ -86,6 +101,6 @@ Material:
     - _abc: 0
     - _dfg: 0.515
     m_Colors:
-    - _Color: {r: 0, g: -0.09171901, b: -0.1981132, a: -0.5}
+    - _Color: {r: 0.5403841, g: 0.0705204, b: 0.20226909, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _MainColor: {r: 0, g: 0.6, b: 0.8, a: 0.6}

@@ -8269,7 +8269,7 @@ AudioHighPassFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 539518658}
   m_Enabled: 1
-  m_CutoffFrequency: 400
+  m_CutoffFrequency: 100
   m_HighpassResonanceQ: 1
 --- !u!1 &558838191
 GameObject:
@@ -15155,7 +15155,7 @@ AudioHighPassFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 683326034}
   m_Enabled: 1
-  m_CutoffFrequency: 400
+  m_CutoffFrequency: 100
   m_HighpassResonanceQ: 1
 --- !u!1001 &685568329
 PrefabInstance:
@@ -20269,7 +20269,7 @@ AudioHighPassFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 909188652}
   m_Enabled: 1
-  m_CutoffFrequency: 400
+  m_CutoffFrequency: 100
   m_HighpassResonanceQ: 1
 --- !u!1 &923302817 stripped
 GameObject:
@@ -21422,7 +21422,7 @@ AudioHighPassFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1006970118}
   m_Enabled: 1
-  m_CutoffFrequency: 400
+  m_CutoffFrequency: 100
   m_HighpassResonanceQ: 1
 --- !u!1 &1008907450
 GameObject:
@@ -22191,7 +22191,7 @@ AudioHighPassFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1060194333}
   m_Enabled: 1
-  m_CutoffFrequency: 400
+  m_CutoffFrequency: 100
   m_HighpassResonanceQ: 1
 --- !u!1001 &1061567562
 PrefabInstance:
@@ -33804,7 +33804,7 @@ AudioHighPassFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1720677201}
   m_Enabled: 1
-  m_CutoffFrequency: 400
+  m_CutoffFrequency: 100
   m_HighpassResonanceQ: 1
 --- !u!1 &1734499727
 GameObject:
@@ -36361,9 +36361,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2be248c5a5bbb6240b820f7c2cf0f14e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_AppData: {fileID: 0}
+  m_AppData: {fileID: 4900000, guid: 95568a889fd7ffb4185300c3d45ae0b7, type: 3}
   m_AssetLookup: {fileID: 0}
-  m_RootGameObjects: []
+  m_RootGameObjects:
+  - {fileID: 0}
+  - {fileID: 1931093833}
   m_FadeIn:
     m_Color: {r: 0, g: 0, b: 0, a: 1}
     m_Duration: 2
@@ -40538,27 +40540,27 @@ PrefabInstance:
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: scatterVolume
-      value: 0.4
+      value: 0.45
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: loopVolume
-      value: 0.3
+      value: 0.13
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: singleShotVolume
-      value: 0.4
+      value: 0.56
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: startVolume
-      value: 0.4
+      value: 0.43
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: endVolume
-      value: 0.5
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
@@ -40568,12 +40570,12 @@ PrefabInstance:
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: vrHorizontalSensitivity
-      value: 1.1
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: vrVerticalSensitivity
-      value: 1.3
+      value: 1.4
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
@@ -40585,6 +40587,26 @@ PrefabInstance:
       propertyPath: objectsToActivateOnRelease.Array.data[2]
       value: 
       objectReference: {fileID: 708031673}
+    - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
+        type: 3}
+      propertyPath: initialGrabHapticDuration
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
+        type: 3}
+      propertyPath: recoilAngle
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
+        type: 3}
+      propertyPath: kickbackIntensity
+      value: 0.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
+        type: 3}
+      propertyPath: recoilRecovery
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 4622140728014162643, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -136838,7 +136860,7 @@ PrefabInstance:
     - target: {fileID: 2290499974784231895, guid: 9c5ed4a9de3e35a47a8a4ffe045bf637,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.3
+      value: 2.45
       objectReference: {fileID: 0}
     - target: {fileID: 2290499974784231895, guid: 9c5ed4a9de3e35a47a8a4ffe045bf637,
         type: 3}
