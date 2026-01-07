@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Liminal.SDK.VR;
 using Liminal.SDK.VR.Input;
-using UnityEngine.Audio; 
+using UnityEngine.Audio;
 
 public class Cannon : MonoBehaviour
 {
@@ -13,7 +13,7 @@ public class Cannon : MonoBehaviour
     public GameObject hand;
     public GameObject handleHand;
     public GameObject primaryHand;
-    public GameObject secondaryHand; 
+    public GameObject secondaryHand;
     public GameObject cannonPos;
     private CannonBall cb;
 
@@ -34,11 +34,11 @@ public class Cannon : MonoBehaviour
     public AudioClip scatterClip;   // short burst sound for shotgun
 
     [Header("Audio Volumes")]
-    [Range(0f,1f)] public float singleShotVolume = 1f;
-    [Range(0f,1f)] public float startVolume = 1f;
-    [Range(0f,1f)] public float loopVolume = 1f;
-    [Range(0f,1f)] public float endVolume = 1f;
-    [Range(0f,1f)] public float scatterVolume = 1f;
+    [Range(0f, 1f)] public float singleShotVolume = 1f;
+    [Range(0f, 1f)] public float startVolume = 1f;
+    [Range(0f, 1f)] public float loopVolume = 1f;
+    [Range(0f, 1f)] public float endVolume = 1f;
+    [Range(0f, 1f)] public float scatterVolume = 1f;
 
     [Header("Power Up Settings")]
     public bool isScatterShot = false;
@@ -48,7 +48,7 @@ public class Cannon : MonoBehaviour
     public float fullAutoFireRate = 0.25f;
 
     [Header("Spawner Manager")]
-    public SpawnerManager spawnerManager; 
+    public SpawnerManager spawnerManager;
 
     // Handle interaction
     [HideInInspector] public bool grabHandle;
@@ -105,7 +105,9 @@ public class Cannon : MonoBehaviour
         IVRInputDevice secondaryInput = VRDevice.Device != null ? VRDevice.Device.SecondaryInputDevice : null;
 
         // ---------- PC Editor Grab ----------
-        if (Application.isEditor && Input.GetKeyDown(KeyCode.E))
+#if UNITY_EDITOR
+        // In the editor, press 'E' to simulate grabbing the handles and start the game.
+        if (Application.isEditor && Input.GetKeyDown(KeyCode.E) && !grabHandle)
         {
             grabHandle = true;
             grabHandleComplete = true;
@@ -129,8 +131,8 @@ public class Cannon : MonoBehaviour
             // Turn on Game Start Dialogue when turret grabbed
             if (gameStartDialogue != null)
                 gameStartDialogue.SetActive(true);
-
         }
+#endif
 
         // ---------- VR Grab Handle ----------
         if (!Application.isEditor && VRDevice.Device != null)
@@ -233,7 +235,7 @@ public class Cannon : MonoBehaviour
 
                 currentRecoil = Mathf.Lerp(currentRecoil, 0f, recoilRecovery * Time.deltaTime);
             }
-            else
+            else // This block handles Editor mouse controls
             {
                 // Mouse Controls
                 float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -253,18 +255,21 @@ public class Cannon : MonoBehaviour
             }
 
             // Fire
-            //bool firePressed = false;
             {
                 // Fire input handling: detect both "down" (single) and "hold" (continuous)
                 bool holdFire = false;
                 bool downFire = false;
 
+#if UNITY_EDITOR
                 if (Application.isEditor)
                 {
-                    holdFire = Input.GetMouseButton(0);       // held
-                    downFire = Input.GetMouseButtonDown(0);   // single-frame press
+                    // MODIFICATION: Check for left OR right mouse button to mirror VR 'either hand' functionality.
+                    // GetMouseButton(0) is left click, GetMouseButton(1) is right click.
+                    holdFire = Input.GetMouseButton(0) || Input.GetMouseButton(1);
+                    downFire = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1);
                 }
-                else
+#endif
+                if (!Application.isEditor)
                 {
                     if (primaryInput != null)
                     {
@@ -278,7 +283,7 @@ public class Cannon : MonoBehaviour
                     }
                 }
 
-                // Use holdFire for full-auto, downFire for single-shot
+                // Use holdFire for full-auto, downFire for single-shot/scatter
                 if (isFullAutoShot)
                     firePressed = holdFire;
                 else
@@ -288,7 +293,6 @@ public class Cannon : MonoBehaviour
                 if ((!isFullAutoShot && !isScatterShot) && firePressed)
                 {
                     FireCannon();
-                    
                 }
                 else if (isFullAutoShot && firePressed)
                 {
@@ -312,7 +316,7 @@ public class Cannon : MonoBehaviour
                     FireCannon();
                     audio.PlayOneShot(scatterClip, scatterVolume);
                 }
-                else // player released
+                else // player released trigger/mouse
                 {
                     if (autoFireRoutine != null)
                     {
@@ -326,10 +330,6 @@ public class Cannon : MonoBehaviour
                         if (isFullAutoShot && endClip != null)
                             audio.PlayOneShot(endClip, endVolume);
                     }
-                    /*else
-                    {
-                        audio.loop = false;
-                    }*/
                 }
             }
         }
@@ -370,7 +370,7 @@ public class Cannon : MonoBehaviour
             if (!isFullAutoShot && singleShotClip != null)
                 audio.PlayOneShot(singleShotClip, singleShotVolume);
         }
-        
+
 
         // 🎇 Randomize muzzle flash Z rotation
         if (particleSystem != null)
@@ -380,7 +380,7 @@ public class Cannon : MonoBehaviour
             particleSystem.Play();
         }
 
-        
+
         // Recoil
         currentRecoil += recoilAngle;
         currentRecoil = Mathf.Clamp(currentRecoil, 0, recoilAngle * 2f);
@@ -433,42 +433,19 @@ public class Cannon : MonoBehaviour
 
     public void ActivateScatterShot()
     {
-        //if (isScatterShot) return;
         isScatterShot = true;
-
-        //if (powerUpRoutine != null)
-        //StopCoroutine(powerUpRoutine);
-        //if (autoFireRoutine != null)
-        //StopCoroutine(autoFireRoutine);
-
-        //powerUpRoutine = StartCoroutine(PowerUpTimer());
-        //autoFireRoutine = StartCoroutine(AutoFireCannon());
     }
 
     public void DeactivateScatterShot()
     {
         isScatterShot = false;
-
-        //if (powerUpRoutine != null)
-        //StopCoroutine(powerUpRoutine);
-        //if (autoFireRoutine != null)
-        //StopCoroutine(autoFireRoutine);
     }
-    
+
     public void ActivateFullAutoShot()
     {
-        //if (isScatterShot) return;
         isFullAutoShot = true;
-
-        //if (powerUpRoutine != null)
-        //StopCoroutine(powerUpRoutine);
-        //if (autoFireRoutine != null)
-        //StopCoroutine(autoFireRoutine);
-
-        //powerUpRoutine = StartCoroutine(PowerUpTimer());
-        //autoFireRoutine = StartCoroutine(AutoFireCannon());
     }
-    
+
     public void DeactivateFullAutoShot()
     {
         isFullAutoShot = false;
@@ -483,9 +460,9 @@ public class Cannon : MonoBehaviour
             audio.loop = false;
             audio.Stop();
 
-            
+
             if (endClip != null)
-            audio.PlayOneShot(endClip, endVolume);
+                audio.PlayOneShot(endClip, endVolume);
         }
     }
 
@@ -499,21 +476,4 @@ public class Cannon : MonoBehaviour
         }
         autoFireRoutine = null;
     }
-    /*
-    private IEnumerator PowerUpTimer()
-    {
-        yield return new WaitForSeconds(powerUpDuration);
-        isPoweredUp = false;
-
-        if (autoFireRoutine != null)
-            StopCoroutine(autoFireRoutine);
-    }*/
-
-    // call to set SFX volume from UI (linear 0..1)
-    /*public void SetSFXVolume(float linear)
-    {
-        float clamped = Mathf.Clamp(linear, 0.0001f, 1f); // avoid log(0)
-        float dB = Mathf.Log10(clamped) * 20f; // convert linear to dB
-        masterMixer.SetFloat("SFXVolume", dB); // expose "SFXVolume" param on your mixer
-    }*/
 }
