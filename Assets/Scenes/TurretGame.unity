@@ -40570,12 +40570,12 @@ PrefabInstance:
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: vrHorizontalSensitivity
-      value: 1.2
+      value: 1.05
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: vrVerticalSensitivity
-      value: 1.4
+      value: 1.1
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
