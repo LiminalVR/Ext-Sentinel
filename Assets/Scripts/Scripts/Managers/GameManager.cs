@@ -82,15 +82,19 @@ public class GameManager : MonoBehaviour
 
     private SpawnerManager spawnerManager;
 
+    public static GameManager Instacne;
+
     private void Awake()
     {
-        // ensure spawnerManager reference is assigned
-        spawnerManager = FindObjectOfType<SpawnerManager>();
+        Instacne = this;
     }
 
     private void Start()
     {
-      // If no material assigned manually, get it from fadeObject
+        // ensure spawnerManager reference is assigned
+        spawnerManager = SpawnerManager.Instance;
+
+        // If no material assigned manually, get it from fadeObject
         if (fadeMaterial == null && fadeObject != null)
         {
             Renderer r = fadeObject.GetComponent<Renderer>();
@@ -117,7 +121,7 @@ public class GameManager : MonoBehaviour
             fadeMaterial.color = color;
         }
 
-        spawnerManager = FindObjectOfType<SpawnerManager>();
+        spawnerManager = SpawnerManager.Instance;
 
         if (shieldSlider != null)
         {
@@ -345,11 +349,7 @@ public class GameManager : MonoBehaviour
             yield return StartCoroutine(FadeOut());
 
         // Find MyExperienceApp and end experience
-        MyExperienceApp expApp = FindObjectOfType<MyExperienceApp>();
-        if (expApp != null)
-        {
-            expApp.EndExperience();
-        }
+        MyExperienceApp.End();
     }
 
     public void FadeAndLoadResults()

@@ -9,7 +9,6 @@ public class AIPatrol : MonoBehaviour
     States currentState;
 
     NavMeshAgent agent;
-    GameObject target;
 
     [SerializeField] float sightRange, attackRange;
     List<Vector3> Nodes = new List<Vector3>();
@@ -19,7 +18,6 @@ public class AIPatrol : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        target = GameObject.FindGameObjectWithTag("Player");
 
         currentState = States.IDLE;
         StartCoroutine(SM());

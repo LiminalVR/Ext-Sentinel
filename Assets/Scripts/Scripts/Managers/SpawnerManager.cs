@@ -141,14 +141,18 @@ public class SpawnerManager : MonoBehaviour
 
     private Wave endlessCurrentWave = new Wave();
 
+    public static SpawnerManager Instance;
+
     private void Awake()
     {
-        gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
+        Instance = this;
         SetUpChildObjects();
     }
 
     private void Start()
     {
+        gameManager = GameManager.Instacne;
+
         if (waveText != null)
             waveText.text = "GET READY, THEY'RE COMING...";
         if (waveTimerText != null)
@@ -267,10 +271,20 @@ public class SpawnerManager : MonoBehaviour
         {
             foreach (Transform child in transform)
             {
-                if (child.CompareTag("SpawnPoint"))
+                var spawnPoint = child.GetComponent<SpawnPoint>();
+                var wayPoint = child.GetComponent<WayPoint>();
+
+                if (spawnPoint != null)
+                {
+                    Debug.Log("Adding Spawnpoint");
                     spawnPoints.Add(child);
-                else if (child.CompareTag("Waypoint"))
+                }
+
+                if (wayPoint != null)
+                {
+                    Debug.Log("Adding Waypoint");
                     waypoints.Add(child);
+                }
             }
         }
     }
@@ -639,7 +653,7 @@ public class SpawnerManager : MonoBehaviour
         else
         {
             Debug.LogWarning("[SpawnerManager] No 'End Sequence Timeline Object' assigned. Falling back to old fade behavior.");
-            GameManager gm = FindObjectOfType<GameManager>();
+            GameManager gm = GameManager.Instacne;
             if (gm != null)
             {
                 gm.FadeAndLoadResults();

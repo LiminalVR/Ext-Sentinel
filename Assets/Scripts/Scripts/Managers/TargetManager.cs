@@ -4,16 +4,20 @@ using UnityEngine;
 
 public class TargetManager : MonoBehaviour
 {
-    public GameObject[] targets;
+    public Target[] targets;
+
+    public static TargetManager Instance;
 
     void Awake()
     {
-        targets = GameObject.FindGameObjectsWithTag("Target");
+        Instance = this;
+        
     }
+
     // Start is called before the first frame update
     void Start()
     {
-        
+        targets = transform.GetComponentsInChildren<Target>();
     }
 
     // Update is called once per frame
@@ -24,13 +28,10 @@ public class TargetManager : MonoBehaviour
 
     public void OnDrawGizmos()
     {
-        foreach (Transform target in gameObject.GetComponentInChildren<Transform>())
+        foreach (Target target in transform.GetComponentsInChildren<Target>())
         {
-            if (target.CompareTag("Target"))
-            {
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawSphere(target.transform.position, 1);
-            }
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawSphere(target.transform.position, 1);
         }
     }
 }

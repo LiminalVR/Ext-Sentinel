@@ -32,7 +32,7 @@ public class UFOController : MonoBehaviour
         // Auto-find SpawnerManager if not set
         if (spawnerManager == null)
         {
-            spawnerManager = FindObjectOfType<SpawnerManager>();
+            spawnerManager = SpawnerManager.Instance;
         }
 
         // Subscribe to both wave start and completion events

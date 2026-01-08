@@ -51,8 +51,6 @@ public class DroneHealth : MonoBehaviour
     {
         //Debug.Log("DroneHealth Awake on: " + gameObject.name);
 
-        gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
-
         if (enemyShip)
         {
             boxCollider = GetComponentInChildren<BoxCollider>();
@@ -69,6 +67,7 @@ public class DroneHealth : MonoBehaviour
 
     private void Start()
     {
+        gameManager = GameManager.Instacne;
         enemyMovement = GetComponent<EnemyMovement>();
         //Debug.Log("Current health: " + health);
     }

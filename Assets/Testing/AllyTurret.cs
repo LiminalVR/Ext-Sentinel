@@ -162,9 +162,8 @@ public class AllyTurret : MonoBehaviour
 
     private Transform FindRandomEnemy()
     {
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        if (enemies.Length == 0) return null;
-        return enemies[Random.Range(0, enemies.Length)].transform;
+        if (GameManager.Instacne.enemies.Count == 0) return null;
+        return GameManager.Instacne.enemies[Random.Range(0, GameManager.Instacne.enemies.Count)].transform;
     }
 
         // Option B: pick closest enemy (if you want smarter allies)

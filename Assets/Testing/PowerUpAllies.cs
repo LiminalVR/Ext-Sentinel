@@ -15,7 +15,9 @@ public class PowerUpAllies : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("PlayerShot"))
+        var cannonBall = collision.gameObject.GetComponent<CannonBall>();
+
+        if (cannonBall != null)
         {
             if (allyTurretGroup != null)
                 allyTurretGroup.SetActive(true); // Activate allyTurretGroup on powerup trigger

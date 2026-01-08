@@ -118,6 +118,13 @@ public class Cannon : MonoBehaviour
     [Tooltip("These objects will become active when the turret is released, but only after the first grab.")]
     public GameObject[] objectsToActivateOnRelease;
 
+    public static GameObject Player;
+
+    void Awake()
+    {
+        Player = gameObject;
+    }
+
     void Start()
     {
         initialGrab = false;
@@ -142,7 +149,6 @@ public class Cannon : MonoBehaviour
         IVRInputDevice primaryInput = VRDevice.Device != null ? VRDevice.Device.PrimaryInputDevice : null;
         IVRInputDevice secondaryInput = VRDevice.Device != null ? VRDevice.Device.SecondaryInputDevice : null;
 
-#if UNITY_EDITOR
         // Editor Hold-to-Grab Logic
         if (Application.isEditor && Input.GetKeyDown(KeyCode.E) && !grabHandle)
         {
@@ -153,7 +159,6 @@ public class Cannon : MonoBehaviour
         {
             HandleRelease();
         }
-#endif
 
         // VR Grab Handle Logic
         if (!Application.isEditor && VRDevice.Device != null)
@@ -235,13 +240,12 @@ public class Cannon : MonoBehaviour
                 bool holdFire = false;
                 bool downFire = false;
 
-#if UNITY_EDITOR
                 if (Application.isEditor)
                 {
                     holdFire = Input.GetMouseButton(0) || Input.GetMouseButton(1);
                     downFire = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1);
                 }
-#endif
+
                 if (!Application.isEditor)
                 {
                     if (primaryInput != null)

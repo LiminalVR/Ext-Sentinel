@@ -66,10 +66,10 @@ public class EnemyHealth : MonoBehaviour
     private int startHealth;
 
 
-    void Awake()
+    private void Start()
     {
         // safer lookup: don't assume a named object exists
-        gameManager = FindObjectOfType<GameManager>();
+        gameManager = GameManager.Instacne;
         if (gameManager == null)
             Debug.LogWarning("[EnemyHealth] GameManager not found in scene. Score/remove calls will be skipped.");
 
@@ -92,11 +92,7 @@ public class EnemyHealth : MonoBehaviour
             boxCollider = GetComponent<BoxCollider>();
             enemyShoot = GetComponent<EnemyShoot>();
         }
-    }
 
-
-    private void Start()
-    {
         enemyMovement = GetComponent<EnemyMovement>();
     }
 

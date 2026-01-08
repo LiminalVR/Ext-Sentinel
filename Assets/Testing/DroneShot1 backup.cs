@@ -11,9 +11,8 @@ public class DroneShot1_backup : MonoBehaviour
     public float timeBetweenShots;
     public GameObject player;
     private EnemyCannonBall cb;
-    public GameObject targetManager;
     private int targetPicker;
-    public GameObject[] targets;
+    public Target[] targets;
     private int barrelPicker;
     private BoxCollider boxCollider;
     private int lastNumber;
@@ -25,14 +24,13 @@ public class DroneShot1_backup : MonoBehaviour
 
     private void Awake()
     {
-        targetManager = GameObject.Find("TargetManager");
-        player = GameObject.FindGameObjectWithTag("Player");
         boxCollider = GetComponentInChildren<BoxCollider>();
     }
 
     private void Start()
     {
-        targets = targetManager.GetComponent<TargetManager>().targets;
+        targets = TargetManager.Instance.targets;
+        player = Cannon.Player;
     }
 
     // Update is called once per frame

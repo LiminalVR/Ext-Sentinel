@@ -15,19 +15,17 @@ public class EnemyMovement : MonoBehaviour
     private int wayPointIndex = 0;
 
     private EnemyHealth enemyHealth;
-    private SpawnerManager spawnerManager;
     public bool isDead = false;
 
     private void Awake()
     {
         enemyHealth = GetComponent<EnemyHealth>();
-        spawnerManager = GameObject.Find("SpawnerManager").GetComponent<SpawnerManager>();
     }
 
     private void OnEnable()
     {
-        if (waypoints.Count == 0 && spawnerManager != null)
-            waypoints = spawnerManager.waypoints;
+        if (waypoints.Count == 0 && SpawnerManager.Instance != null)
+            waypoints = SpawnerManager.Instance.waypoints;
 
         PickNextWaypoint();
     }

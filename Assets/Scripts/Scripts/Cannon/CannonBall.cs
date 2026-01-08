@@ -49,72 +49,51 @@ public class CannonBall : MonoBehaviour, IResettableShot
 
         if (hasHit) return; 
 
-        if (collision.gameObject.CompareTag("Ally"))
+        var lazerShot = collision.gameObject.GetComponentInParent<LazerShot>();
+
+        if (lazerShot != null)
         {
             Physics.IgnoreCollision(collision.collider, sphereCollider);
         }
 
-        if (collision.gameObject.CompareTag("Enemy"))
+        var enemyHealth = collision.gameObject.GetComponentInParent<EnemyHealth>();
+        if (enemyHealth != null)
         {
             hasHit = true;
-            //Debug.Log("Ship Collided");
-
-            var enemyHealth = collision.gameObject.GetComponentInParent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                //Debug.Log("Found EnemyHealth!");
-                Instantiate(standerdHitPrefab, transform.position, Quaternion.identity);
-                enemyHealth.cannonBall = gameObject;
-                enemyHealth.TakeDamage(damage);
-                ResetShot();
-            }
-            else
-            {
-                var droneHealth = collision.gameObject.GetComponentInParent<DroneHealth>();
-                if (droneHealth != null)
-                {
-                    //Debug.Log("Found DroneHealth!");
-                    Instantiate(droneHitPrefab, transform.position, Quaternion.identity);
-                    droneHealth.cannonBall = gameObject;
-                    droneHealth.TakeDamage(damage);
-                    ResetShot();
-                }
-                /*else
-                {
-                    Debug.Log("NO EnemyHealth or DroneHealth found on: " + collision.gameObject.name);
-                }*/
-            }
+            //Debug.Log("Found EnemyHealth!");
             Instantiate(standerdHitPrefab, transform.position, Quaternion.identity);
-            rb.velocity = rb.velocity / 2;
+            enemyHealth.cannonBall = gameObject;
+            enemyHealth.TakeDamage(damage);
+            ResetShot();
+            return;
         }
-
-        
-
-        
-        if (collision.gameObject.CompareTag("DroneShot"))
+        var droneHealth = collision.gameObject.GetComponentInParent<DroneHealth>();
+        if (droneHealth != null)
         {
-            var projHealth = collision.gameObject.GetComponentInParent<ProjectileHealth>();
-            if (projHealth != null)
-            {
-                projHealth.TakeDamage(damage); 
-            }
-            
-            ResetShot(); 
+            hasHit = true;
+            //Debug.Log("Found DroneHealth!");
+            Instantiate(droneHitPrefab, transform.position, Quaternion.identity);
+            droneHealth.cannonBall = gameObject;
+            droneHealth.TakeDamage(damage);
+            ResetShot();
             return;
         }
 
-        if (collision.gameObject.CompareTag("UFO"))
+        var projHealth = collision.gameObject.GetComponentInParent<ProjectileHealth>();
+        if (projHealth != null)
         {
-            var ufoShield = collision.gameObject.GetComponentInParent<UFOShield>();
-            if (ufoShield != null)
-            {
-                ufoShield.OnHit();
-            }
+            projHealth.TakeDamage(damage);
+            ResetShot();
+            return;
         }
 
+        var ufoShield = collision.gameObject.GetComponentInParent<UFOShield>();
+        if (ufoShield != null)
+        {
+            ufoShield.OnHit();
+            return;
+        }
     }
-
-
 
     public void ResetShot()
     {

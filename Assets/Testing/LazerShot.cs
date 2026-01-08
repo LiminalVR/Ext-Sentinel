@@ -41,31 +41,27 @@ public class LazerShot : MonoBehaviour, IResettableShot
     {
         //Debug.Log($"LazerShot hit {collision.gameObject.name} (tag: {collision.gameObject.tag}) at {Time.time}");
 
-        if (collision.gameObject.CompareTag("Enemy"))
+        var enemyHealth = collision.gameObject.GetComponentInParent<EnemyHealth>();
+        if (enemyHealth != null)
         {
-            var enemyHealth = collision.gameObject.GetComponentInParent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                enemyHealth.cannonBall = gameObject;
-                enemyHealth.TakeDamage(damage);
-                ResetShot();
-            }
-            else
-            {
-                var droneHealth = collision.gameObject.GetComponentInParent<DroneHealth>();
-                if (droneHealth != null)
-                {
-                    droneHealth.cannonBall = gameObject;
-                    droneHealth.TakeDamage(damage);
-                    ResetShot();
-                }
-                else
-                {
-                    //Debug.Log("NO EnemyHealth or DroneHealth found on: " + collision.gameObject.name);
-                }
-                rb.velocity = rb.velocity / 2;
-            }
+            enemyHealth.cannonBall = gameObject;
+            enemyHealth.TakeDamage(damage);
+            ResetShot();
+            return;
         }
+
+        var droneHealth = collision.gameObject.GetComponentInParent<DroneHealth>();
+        if (droneHealth != null)
+        {
+            droneHealth.cannonBall = gameObject;
+            droneHealth.TakeDamage(damage);
+            ResetShot();
+            return;
+        }
+
+        //Debug.Log("NO EnemyHealth or DroneHealth found on: " + collision.gameObject.name);
+
+        //rb.velocity = rb.velocity / 2;
     }
     public void ResetShot()
     {

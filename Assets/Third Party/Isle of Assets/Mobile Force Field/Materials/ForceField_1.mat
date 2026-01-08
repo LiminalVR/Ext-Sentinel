@@ -101,6 +101,6 @@ Material:
     - _abc: 0
     - _dfg: 0.515
     m_Colors:
-    - _Color: {r: 0.5403841, g: 0.0705204, b: 0.20226909, a: 1}
+    - _Color: {r: 0, g: 0.18157904, b: 0.39221102, a: 0.9898659}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _MainColor: {r: 0, g: 0.6, b: 0.8, a: 0.6}
