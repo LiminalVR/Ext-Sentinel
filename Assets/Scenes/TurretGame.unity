@@ -17,9 +17,9 @@ RenderSettings:
   m_Fog: 1
   m_FogColor: {r: 0.3529412, g: 0.20000002, b: 0.11764707, a: 1}
   m_FogMode: 1
-  m_FogDensity: 0.01
-  m_LinearFogStart: -129
-  m_LinearFogEnd: 2274
+  m_FogDensity: 0.002
+  m_LinearFogStart: 880
+  m_LinearFogEnd: 3793.2
   m_AmbientSkyColor: {r: 0.28235295, g: 0.04313726, b: 0.14974661, a: 1}
   m_AmbientEquatorColor: {r: 0.5566038, g: 0.065866485, b: 0.06038627, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
@@ -137059,7 +137059,7 @@ PrefabInstance:
     - target: {fileID: 2290499974140200263, guid: 9c5ed4a9de3e35a47a8a4ffe045bf637,
         type: 3}
       propertyPath: far clip plane
-      value: 100000
+      value: 10000
       objectReference: {fileID: 0}
     - target: {fileID: 2290499974140200263, guid: 9c5ed4a9de3e35a47a8a4ffe045bf637,
         type: 3}
