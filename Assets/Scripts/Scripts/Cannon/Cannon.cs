@@ -1,9 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Liminal.SDK.V2;
 using Liminal.SDK.VR;
 using Liminal.SDK.VR.Input;
 using UnityEngine.Audio;
+using UnityEngine.InputSystem;
+using UnityEngine.XR.OpenXR.Features.Interactions;
+using ISCommonUsages = UnityEngine.InputSystem.CommonUsages;
 
 public class Cannon : MonoBehaviour
 {
@@ -52,6 +56,11 @@ public class Cannon : MonoBehaviour
     private Coroutine autoFireRoutine;
     public float fullAutoFireRate = 0.25f;
 
+    [Header("Hand Tracking")]
+    [Tooltip("While hand tracking is active, the cannon auto-fires at this interval whenever it's grabbed (no trigger input needed).")]
+    public float handAutoFireRate = 0.5f;
+    private float handAutoFireTimer;
+
     [Header("Spawner Manager")]
     public SpawnerManager spawnerManager;
 
@@ -60,10 +69,7 @@ public class Cannon : MonoBehaviour
     [HideInInspector] public bool grabHandleComplete;
     [HideInInspector] public bool initialGrab;
 
-    // Mouse control
     [Header("Rotation Settings")]
-    [Tooltip("Mouse sensitivity for Editor mode")]
-    public float mouseSensitivity = 50f;
     bool firePressed = false;
 
     [Tooltip("Rotation speed for VR mode")]
@@ -73,9 +79,6 @@ public class Cannon : MonoBehaviour
     public float vrHorizontalSensitivity = 1.0f;
     [Tooltip("Multiplier for VR vertical (up/down) rotation sensitivity.")]
     public float vrVerticalSensitivity = 1.0f;
-
-    private float pitch = 0f;
-    private float yaw = 0f;
 
 
     [Header("Rotational Recoil")]
@@ -149,24 +152,15 @@ public class Cannon : MonoBehaviour
         IVRInputDevice primaryInput = VRDevice.Device != null ? VRDevice.Device.PrimaryInputDevice : null;
         IVRInputDevice secondaryInput = VRDevice.Device != null ? VRDevice.Device.SecondaryInputDevice : null;
 
-        // Editor Hold-to-Grab Logic
-        if (Application.isEditor && Input.GetKeyDown(KeyCode.E) && !grabHandle)
+        // Grab Handle Logic — grip (VRButton.Three) on controllers, pinch-hold on tracked hands
+        if (VRDevice.Device != null)
         {
-            HandleGrab();
-        }
+            bool primaryGrab = primaryInput != null &&
+                (primaryInput.GetButton(VRButton.Three) || HandPinchHold.IsHeld(primaryInput.Hand));
+            bool secondaryGrab = secondaryInput != null &&
+                (secondaryInput.GetButton(VRButton.Three) || HandPinchHold.IsHeld(secondaryInput.Hand));
 
-        if (Application.isEditor && Input.GetKeyUp(KeyCode.E) && grabHandle)
-        {
-            HandleRelease();
-        }
-
-        // VR Grab Handle Logic
-        if (!Application.isEditor && VRDevice.Device != null)
-        {
-            bool leftGrab = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger);
-            bool rightGrab = OVRInput.Get(OVRInput.Button.SecondaryHandTrigger);
-
-            if (leftGrab && rightGrab)
+            if (primaryGrab && secondaryGrab)
             {
                 if (!grabHandle)
                 {
@@ -184,43 +178,25 @@ public class Cannon : MonoBehaviour
 
         if (grabHandle)
         {
-            Quaternion baseCannonRotation;
+            Quaternion rotation = Quaternion.LookRotation(
+                cannonPos.transform.position - (primaryHand.transform.position - cannonPos.transform.position) * 1000
+            );
 
-            // VR Controls
-            if (!Application.isEditor && VRDevice.Device != null)
-            {
-                Quaternion rotation = Quaternion.LookRotation(
-                    cannonPos.transform.position - (primaryHand.transform.position - cannonPos.transform.position) * 1000
-                );
+            float handX = Mathf.Clamp(rotation.x, -0.4f, 0.2f) * vrVerticalSensitivity;
+            float handY = Mathf.Clamp(rotation.y, -0.4f, 0.4f) * vrHorizontalSensitivity;
 
-                float handX = Mathf.Clamp(rotation.x, -0.4f, 0.2f) * vrVerticalSensitivity;
-                float handY = Mathf.Clamp(rotation.y, -0.4f, 0.4f) * vrHorizontalSensitivity;
+            float rotationSpeed = vrRotationSpeed;
+            cBase.transform.rotation = Quaternion.Lerp(
+                cBase.transform.rotation,
+                new Quaternion(0, handY, 0, cBase.transform.rotation.w),
+                rotationSpeed * Time.deltaTime
+            );
 
-                float rotationSpeed = vrRotationSpeed;
-                cBase.transform.rotation = Quaternion.Lerp(
-                    cBase.transform.rotation,
-                    new Quaternion(0, handY, 0, cBase.transform.rotation.w),
-                    rotationSpeed * Time.deltaTime
-                );
-
-                baseCannonRotation = Quaternion.Lerp(
-                    cannon.transform.localRotation,
-                    new Quaternion(handX, 0, 0, cannon.transform.localRotation.w),
-                    rotationSpeed * Time.deltaTime
-                );
-            }
-            else // Editor mouse controls
-            {
-                float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-                float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
-                yaw += mouseX;
-                pitch -= mouseY;
-                pitch = Mathf.Clamp(pitch, -30f, 30f);
-
-                cBase.localRotation = Quaternion.Euler(0f, yaw, 0f);
-                baseCannonRotation = Quaternion.Euler(pitch, 0f, 0f);
-            }
+            Quaternion baseCannonRotation = Quaternion.Lerp(
+                cannon.transform.localRotation,
+                new Quaternion(handX, 0, 0, cannon.transform.localRotation.w),
+                rotationSpeed * Time.deltaTime
+            );
 
             // --- MODIFIED: Apply all recoil types here ---
             // Rotational Recoil
@@ -240,14 +216,23 @@ public class Cannon : MonoBehaviour
                 bool holdFire = false;
                 bool downFire = false;
 
-                if (Application.isEditor)
+                if (IsHandTrackingActive())
                 {
-                    holdFire = Input.GetMouseButton(0) || Input.GetMouseButton(1);
-                    downFire = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1);
+                    // Hands can't pull a trigger while pinch-grabbing, so the cannon
+                    // fires itself while grabbed: constant hold plus a pulsed "press"
+                    // so the single-shot and scatter paths fire at handAutoFireRate.
+                    holdFire = true;
+                    handAutoFireTimer += Time.deltaTime;
+                    if (handAutoFireTimer >= handAutoFireRate)
+                    {
+                        handAutoFireTimer = 0f;
+                        downFire = true;
+                    }
                 }
-
-                if (!Application.isEditor)
+                else
                 {
+                    handAutoFireTimer = 0f;
+
                     if (primaryInput != null)
                     {
                         holdFire |= primaryInput.GetButton(VRButton.Trigger);
@@ -308,6 +293,20 @@ public class Cannon : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// True when OpenXR hand-interaction devices are present and a hand is actually
+    /// tracked — i.e. the player is using hand tracking rather than controllers.
+    /// </summary>
+    private static bool IsHandTrackingActive()
+    {
+        var left = InputSystem.GetDevice<HandInteractionProfile.HandInteraction>(ISCommonUsages.LeftHand);
+        if (left != null && left.added && left.isTracked.isPressed)
+            return true;
+
+        var right = InputSystem.GetDevice<HandInteractionProfile.HandInteraction>(ISCommonUsages.RightHand);
+        return right != null && right.added && right.isTracked.isPressed;
+    }
+
     private void HandleGrab()
     {
         grabHandle = true;
@@ -355,6 +354,7 @@ public class Cannon : MonoBehaviour
         ToggleReleaseObjects(true);
 
         firePressed = false;
+        handAutoFireTimer = 0f;
 
         if (autoFireRoutine != null)
         {
@@ -463,7 +463,7 @@ public class Cannon : MonoBehaviour
         returnedGameObject.SetActive(true);
 
         localCb.rb.isKinematic = true;
-        localCb.rb.velocity = Vector3.zero;
+        localCb.rb.linearVelocity = Vector3.zero;
 
         StartCoroutine(EnablePhysicsNextFixed(localCb));
     }
@@ -475,7 +475,7 @@ public class Cannon : MonoBehaviour
         if (cbLocal == null || cbLocal.rb == null) yield break;
 
         cbLocal.rb.isKinematic = false;
-        cbLocal.rb.velocity = Vector3.zero;
+        cbLocal.rb.linearVelocity = Vector3.zero;
         cbLocal.rb.AddForce(cbLocal.rb.transform.forward * cbLocal.force, ForceMode.Impulse);
     }
 

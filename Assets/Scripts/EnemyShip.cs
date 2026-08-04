@@ -61,7 +61,7 @@ public class EnemyShip : MonoBehaviour
         // And... fire!!
         GameObject bullet = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        rb.velocity = dir * bulletSpeed; // Determine the velocity.
+        rb.linearVelocity = dir * bulletSpeed; // Determine the velocity.
     }
 
     void OnTriggerEnter(Collider other)

@@ -97,7 +97,7 @@ public class CannonBall : MonoBehaviour, IResettableShot
 
     public void ResetShot()
     {
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
 
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; // or Discrete

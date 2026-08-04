@@ -1,8 +1,4 @@
 {
-    "PreviousScene": "",
     "TargetScene": "Assets/Scenes/TurretGame.unity",
-    "AdditionalReferences": [
-        "UnityEngine.AIModule"
-    ],
     "SelectedPlatform": 0
 }
