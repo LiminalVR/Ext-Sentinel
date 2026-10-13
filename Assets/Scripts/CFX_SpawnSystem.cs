@@ -1,4 +1,9 @@
 using UnityEngine;
+#if UNITY_6000_7_OR_NEWER
+using CFXObjectId = UnityEngine.EntityId;
+#else
+using CFXObjectId = System.Int32;
+#endif
 using System.Collections;
 using System.Collections.Generic;
 
@@ -24,7 +29,11 @@ public class CFX_SpawnSystem : MonoBehaviour
 	/// </param>
 	static public GameObject GetNextObject(GameObject sourceObj, bool activateObject = true)
 	{
+#if UNITY_6000_7_OR_NEWER
+		CFXObjectId uniqueId = sourceObj.GetEntityId();
+#else
 		int uniqueId = sourceObj.GetInstanceID();
+#endif
 		
 		if(!instance.poolCursors.ContainsKey(uniqueId))
 		{
@@ -128,12 +137,16 @@ public class CFX_SpawnSystem : MonoBehaviour
 	public bool instantiateIfNeeded = false;
 	
 	private bool allObjectsLoaded;
-	private Dictionary<int,List<GameObject>> instantiatedObjects = new Dictionary<int, List<GameObject>>();
-	private Dictionary<int,int> poolCursors = new Dictionary<int, int>();
+	private Dictionary<CFXObjectId,List<GameObject>> instantiatedObjects = new Dictionary<CFXObjectId, List<GameObject>>();
+	private Dictionary<CFXObjectId,int> poolCursors = new Dictionary<CFXObjectId, int>();
 	
 	private void addObjectToPool(GameObject sourceObject, int number)
 	{
+#if UNITY_6000_7_OR_NEWER
+		CFXObjectId uniqueId = sourceObject.GetEntityId();
+#else
 		int uniqueId = sourceObject.GetInstanceID();
+#endif
 
 		//Add new entry if it doesn't exist
 		if(!instantiatedObjects.ContainsKey(uniqueId))
@@ -174,7 +187,11 @@ public class CFX_SpawnSystem : MonoBehaviour
 	
 	private void removeObjectsFromPool(GameObject sourceObject)
 	{
+#if UNITY_6000_7_OR_NEWER
+		CFXObjectId uniqueId = sourceObject.GetEntityId();
+#else
 		int uniqueId = sourceObject.GetInstanceID();
+#endif
 		
 		if(!instantiatedObjects.ContainsKey(uniqueId))
 		{
@@ -195,7 +212,7 @@ public class CFX_SpawnSystem : MonoBehaviour
 		poolCursors.Remove(uniqueId);
 	}
 
-	private void increasePoolCursor(int uniqueId)
+	private void increasePoolCursor(CFXObjectId uniqueId)
 	{
 		instance.poolCursors[uniqueId]++;
 		if(instance.poolCursors[uniqueId] >= instance.instantiatedObjects[uniqueId].Count)

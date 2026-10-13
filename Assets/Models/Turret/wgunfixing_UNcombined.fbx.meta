@@ -3,7 +3,12 @@ guid: e5b343587438466429b461ddf5f6087f
 ModelImporter:
   serializedVersion: 25
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: turret_model_VR_HandGuns_4_standardSurface1
+    second: {fileID: 2100000, guid: 519a2ba61e9b460418cf220e6154581d, type: 2}
   materials:
     importMaterials: 1
     materialName: 0

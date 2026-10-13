@@ -152,15 +152,18 @@ public class Cannon : MonoBehaviour
         IVRInputDevice primaryInput = VRDevice.Device != null ? VRDevice.Device.PrimaryInputDevice : null;
         IVRInputDevice secondaryInput = VRDevice.Device != null ? VRDevice.Device.SecondaryInputDevice : null;
 
-        // Grab Handle Logic — grip (VRButton.Three) on controllers, pinch-hold on tracked hands
+        // Grab Handle Logic — hand tracking always owns the turret; controllers
+        // still require both grips.
         if (VRDevice.Device != null)
         {
+            bool handTrackingActive = IsHandTrackingActive();
             bool primaryGrab = primaryInput != null &&
                 (primaryInput.GetButton(VRButton.Three) || HandPinchHold.IsHeld(primaryInput.Hand));
             bool secondaryGrab = secondaryInput != null &&
                 (secondaryInput.GetButton(VRButton.Three) || HandPinchHold.IsHeld(secondaryInput.Hand));
+            bool shouldGrab = handTrackingActive || (primaryGrab && secondaryGrab);
 
-            if (primaryGrab && secondaryGrab)
+            if (shouldGrab)
             {
                 if (!grabHandle)
                 {

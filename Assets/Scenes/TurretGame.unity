@@ -3645,7 +3645,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 07d7e147e8d467a4b8fc5028b14b1ca7, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -42773,12 +42773,12 @@ PrefabInstance:
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: vrVerticalSensitivity
-      value: 1.04
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}
       propertyPath: vrHorizontalSensitivity
-      value: 1.01
+      value: 1.17
       objectReference: {fileID: 0}
     - target: {fileID: 7540508606716804044, guid: ed4d40976a4d723439aa4a65662774f6,
         type: 3}

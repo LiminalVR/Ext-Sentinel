@@ -164,7 +164,11 @@ public class WaterReflection : MonoBehaviour
 			if( m_ReflectionTexture )
 				DestroyImmediate( m_ReflectionTexture );
 			m_ReflectionTexture = new RenderTexture( m_TextureSize, m_TextureSize, 16 );
+#if UNITY_6000_7_OR_NEWER
+			m_ReflectionTexture.name = "__MirrorReflection" + GetEntityId();
+#else
 			m_ReflectionTexture.name = "__MirrorReflection" + GetInstanceID();
+#endif
 			m_ReflectionTexture.isPowerOfTwo = true;
 			m_ReflectionTexture.hideFlags = HideFlags.DontSave;
 			m_OldReflectionTextureSize = m_TextureSize;
@@ -174,7 +178,11 @@ public class WaterReflection : MonoBehaviour
 		reflectionCamera = m_ReflectionCameras[currentCamera] as Camera;
 		if( !reflectionCamera ) // catch both not-in-dictionary and in-dictionary-but-deleted-GO
 		{
+#if UNITY_6000_7_OR_NEWER
+			GameObject go = new GameObject( "Mirror Refl Camera id" + GetEntityId() + " for " + currentCamera.GetEntityId(), typeof(Camera), typeof(Skybox) );
+#else
 			GameObject go = new GameObject( "Mirror Refl Camera id" + GetInstanceID() + " for " + currentCamera.GetInstanceID(), typeof(Camera), typeof(Skybox) );
+#endif
 			reflectionCamera = go.GetComponent<Camera>();
 			reflectionCamera.enabled = false;
 			reflectionCamera.transform.position = transform.position;

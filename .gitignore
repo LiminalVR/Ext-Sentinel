@@ -101,3 +101,12 @@ InitTestScene*.unity*
 # Standard Windows junk
 Thumbs.db
 .DS_Store
+
+/Builds/
+/Logs/
+/UserSettings/
+/.utmp/
+*.slnx
+/Limapp-output/
+*_BurstDebugInformation_DoNotShip/
+__pycache__/

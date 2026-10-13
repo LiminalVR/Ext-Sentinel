@@ -1,0 +1,12 @@
+{
+  "project": "311_Sentinel",
+  "name": "Experience311",
+  "scene": "Assets/Scenes/TurretGame.unity",
+  "progression": "Inspect before configuring a natural run",
+  "checkpoints": [
+    60,
+    120,
+    180
+  ],
+  "review": "Not started"
+}
